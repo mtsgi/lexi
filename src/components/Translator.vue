@@ -3,17 +3,31 @@ import { ref } from 'vue'
 
 import BaseButton from './BaseButton.vue';
 
+// Type definitions for the Web Translation API
+interface TranslationApi {
+  availability(options: { sourceLanguage: string; targetLanguage: string }): Promise<string>;
+  create(options: { 
+    sourceLanguage: string; 
+    targetLanguage: string; 
+    monitor?: (monitor: any) => void;
+  }): Promise<any>;
+}
+
+declare global {
+  const Translator: TranslationApi;
+}
+
 const supported = 'Translator' in self;
 
-const sourceLanguage = ref('en');
-const targetLanguage = ref('ja');
+const sourceLanguage = ref<string>('en');
+const targetLanguage = ref<string>('ja');
 
-const input = ref('');
-const output = ref('');
+const input = ref<string>('');
+const output = ref<string>('');
 
-const translator = ref(null);
+const translator = ref<any>(null);
 
-const createTranslator = async () => {
+const createTranslator = async (): Promise<void> => {
   if (!supported) return;
 
   output.value = 'Creating translator...';
@@ -27,16 +41,18 @@ const createTranslator = async () => {
       alert(`Translator is unavailable for ${sourceLanguage.value} → ${targetLanguage.value}.`);
       return;
     }
-  } catch (e) {
-    alert(`Error: ${e.message}`);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      alert(`Error: ${error.message}`);
+    }
     return;
   }
 
   translator.value = await Translator.create({
     sourceLanguage: sourceLanguage.value,
     targetLanguage: targetLanguage.value,
-    monitor(m) {
-      m.addEventListener('downloadprogress', (e) => {
+    monitor(m: any) {
+      m.addEventListener('downloadprogress', (e: any) => {
         console.log(`Download progress: ${e.loaded * 100}%`);
       });
     },
@@ -46,7 +62,7 @@ const createTranslator = async () => {
   alert('Translator created successfully.');
 };
 
-const translate = async () => {
+const translate = async (): Promise<void> => {
   if (!supported) {
     alert('Your browser does not support the Translator API.');
     return;
