@@ -18,6 +18,7 @@ declare global {
 }
 
 const supported = 'Translator' in self;
+const errorMessage = ref<string | null>(null);
 
 const sourceLanguage = ref<string>('en');
 const targetLanguage = ref<string>('ja');
@@ -28,7 +29,14 @@ const output = ref<string>('');
 const translator = ref<any>(null);
 
 const createTranslator = async (): Promise<void> => {
-  if (!supported) return;
+  if (!supported) {
+    errorMessage.value = 'Your browser does not support the Translator API.';
+    return;
+  }
+
+  if (translator.value) {
+    translator.value.destroy();
+  }
 
   output.value = 'Creating translator...';
   try {
@@ -38,12 +46,12 @@ const createTranslator = async (): Promise<void> => {
     });
 
     if (translatorAvailability === 'unavailable') {
-      alert(`Translator is unavailable for ${sourceLanguage.value} → ${targetLanguage.value}.`);
+      errorMessage.value = `Translator is unavailable for ${sourceLanguage.value} → ${targetLanguage.value}.`;
       return;
     }
   } catch (error: unknown) {
     if (error instanceof Error) {
-      alert(`Error: ${error.message}`);
+      errorMessage.value = `Error: ${error.message}`;
     }
     return;
   }
@@ -64,24 +72,39 @@ const createTranslator = async (): Promise<void> => {
 
 const translate = async (): Promise<void> => {
   if (!supported) {
-    alert('Your browser does not support the Translator API.');
+    errorMessage.value = 'Your browser does not support the Translator API.';
     return;
   }
 
   if (!translator.value) {
-    alert('Please create a translator first.');
+    errorMessage.value = 'Please create a translator first.';
     return;
   }
 
-  output.value = 'Translating...';
-  output.value = await translator.value.translate(input.value);
+  try {
+    errorMessage.value = null;
+    output.value = 'Translating...';
+    output.value = await translator.value.translate(input.value);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      errorMessage.value = `Error: ${error.message}`;
+    }
+  }
 };
 </script>
 
 <template>
   <div class="translator">
-    <div v-if="!supported">
-      Your browser does not support the Translator API.
+    <div v-if="errorMessage" class="alert" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button
+        class="alert-dismiss"
+        type="button"
+        aria-label="Dismiss error"
+        @click="errorMessage = null"
+      >
+        ×
+      </button>
     </div>
 
     <textarea
@@ -120,11 +143,39 @@ const translate = async (): Promise<void> => {
   gap: 1em;
 }
 
+.alert {
+  padding: 1em;
+  background-color: #ffdddd;
+  border-radius: 0.5em;
+  color: #a70000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+.alert-dismiss {
+  background: none;
+  border: none;
+  color: #a70000;
+  font-family: inherit;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0 0.5em;
+  border-radius: 0.5em;
+}
+
+.alert-dismiss:focus {
+  outline: 2px solid #6366F1;
+  background: #ffeaea;
+}
+
 input, textarea {
   font: inherit;
   padding: 0.5em;
   border: 1px solid #ccc;
   border-radius: 0.5em;
+  min-width: 0;
 }
 
 .translator-input, .translator-output {
