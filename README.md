@@ -3,8 +3,8 @@
 A simple translator with built-in AI
 
 - Vue 3
-- Rolldown Vite
-- Node 22
+- Vite 8
+- Node 24
 - NPM 10
 
 ## Project setup

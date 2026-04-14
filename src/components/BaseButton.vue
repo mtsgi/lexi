@@ -1,8 +1,14 @@
 <template>
-  <button class="base-button">
+  <button class="base-button" :disabled="disabled">
     <slot />
   </button>
 </template>
+
+<script setup lang="ts">
+defineProps<{
+  disabled?: boolean
+}>()
+</script>
 
 <style scoped>
 .base-button {
@@ -22,5 +28,10 @@
 .base-button:focus-visible {
   outline: 4px auto #6366F1;
   outline-offset: 2px;
+}
+
+.base-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

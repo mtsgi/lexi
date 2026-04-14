@@ -1,12 +1,12 @@
 # GitHub Copilot Instructions for Lexi
 
 ## Project Overview
-Lexi is a simple web-based translator application that leverages the browser's built-in Translation API. It's built with Vue 3, TypeScript, and Vite (rolldown-vite).
+Lexi is a simple web-based translator application that leverages the browser's built-in Translation API. It's built with Vue 3, TypeScript, and Vite.
 
 ## Tech Stack
 - **Frontend**: Vue 3 with Composition API
 - **Language**: TypeScript (strict mode enabled)
-- **Build Tool**: Vite (rolldown-vite variant)
+- **Build Tool**: Vite
 - **Styling**: Scoped CSS with CSS custom properties
 - **APIs**: Web Translation API (experimental browser feature)
 
