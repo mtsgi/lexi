@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 import BaseButton from './BaseButton.vue';
+import { LANGUAGES } from '../constants/languages';
 
 // Type definitions for the Web Translation API
 interface TranslationApi {
@@ -26,7 +27,18 @@ const targetLanguage = ref<string>('ja');
 const input = ref<string>('');
 const output = ref<string>('');
 
-const translator = ref<any>(null);
+const translator = ref<any | null>(null);
+const creating = ref<boolean>(false);
+
+const languagesValid = computed(() => sourceLanguage.value !== targetLanguage.value);
+
+watch([sourceLanguage, targetLanguage], () => {
+  if (translator.value) {
+    translator.value.destroy();
+    translator.value = null;
+    errorMessage.value = 'Language pair changed. Please create a new translator.';
+  }
+});
 
 const createTranslator = async (): Promise<void> => {
   if (!supported) {
@@ -36,8 +48,10 @@ const createTranslator = async (): Promise<void> => {
 
   if (translator.value) {
     translator.value.destroy();
+    translator.value = null;
   }
 
+  creating.value = true;
   output.value = 'Creating translator...';
   try {
     const translatorAvailability = await Translator.availability({
@@ -49,25 +63,27 @@ const createTranslator = async (): Promise<void> => {
       errorMessage.value = `Translator is unavailable for ${sourceLanguage.value} → ${targetLanguage.value}.`;
       return;
     }
+
+    translator.value = await Translator.create({
+      sourceLanguage: sourceLanguage.value,
+      targetLanguage: targetLanguage.value,
+      monitor(m: any) {
+        m.addEventListener('downloadprogress', (e: any) => {
+          console.log(`Download progress: ${e.loaded * 100}%`);
+        });
+      },
+    });
+
+    output.value = '';
+    errorMessage.value = null;
+    alert('Translator created successfully.');
   } catch (error: unknown) {
     if (error instanceof Error) {
       errorMessage.value = `Error: ${error.message}`;
     }
-    return;
+  } finally {
+    creating.value = false;
   }
-
-  translator.value = await Translator.create({
-    sourceLanguage: sourceLanguage.value,
-    targetLanguage: targetLanguage.value,
-    monitor(m: any) {
-      m.addEventListener('downloadprogress', (e: any) => {
-        console.log(`Download progress: ${e.loaded * 100}%`);
-      });
-    },
-  });
-
-  output.value = '';
-  alert('Translator created successfully.');
 };
 
 const translate = async (): Promise<void> => {
@@ -113,18 +129,32 @@ const translate = async (): Promise<void> => {
       placeholder="Enter text to translate"
     />
 
-    <div class="language-select">
-      <input v-model="sourceLanguage" placeholder="Source Language" />
-      <span>→</span>
-      <input v-model="targetLanguage" placeholder="Target Language" />
-    </div>
-
-    <BaseButton @click="createTranslator">
-      Create Translator
+    <BaseButton @click="translate" :disabled="!translator">
+      Translate
     </BaseButton>
 
-    <BaseButton @click="translate">
-      Translate
+    <div class="language-select">
+      <select v-model="sourceLanguage">
+        <option
+          v-for="lang in LANGUAGES"
+          :key="lang.code"
+          :value="lang.code"
+          :disabled="lang.code === targetLanguage"
+        >{{ lang.label }}</option>
+      </select>
+      <span>→</span>
+      <select v-model="targetLanguage">
+        <option
+          v-for="lang in LANGUAGES"
+          :key="lang.code"
+          :value="lang.code"
+          :disabled="lang.code === sourceLanguage"
+        >{{ lang.label }}</option>
+      </select>
+    </div>
+
+    <BaseButton @click="createTranslator" :disabled="creating || !languagesValid">
+      {{ creating ? 'Creating...' : 'Create Translator' }}
     </BaseButton>
 
     <textarea
@@ -170,12 +200,14 @@ const translate = async (): Promise<void> => {
   background: #ffeaea;
 }
 
-input, textarea {
+input, select, textarea {
   font: inherit;
   padding: 0.5em;
   border: 1px solid #ccc;
   border-radius: 0.5em;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .translator-input, .translator-output {
